@@ -1,5 +1,4 @@
 <?php
-
 /*
  * This file is part of BedrockProtocol.
  * Copyright (C) 2014-2022 PocketMine Team <https://github.com/pmmp/BedrockProtocol>
@@ -9,9 +8,7 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  */
-
 declare(strict_types=1);
-
 namespace pocketmine\network\mcpe\protocol;
 
 use pmmp\encoding\ByteBufferReader;
@@ -20,6 +17,14 @@ use pmmp\encoding\DataDecodeException;
 use pmmp\encoding\LE;
 use pocketmine\network\mcpe\protocol\serializer\CommonTypes;
 
+/**
+ * r/26_u4 (protocol 2169)부터 FLAG_FORCE_COMPLETION 비트가 추가됨 ("Force Completion":
+ * 수신자가 이 업데이트를 적용하기 전에 진행 중인 로컬 이동을 완료해야 하는지 여부).
+ * 기존 $flags 필드가 이미 통째로(uint16 LE) 직렬화되므로, 이 비트를 추가하는 것만으로
+ * 인코딩/디코딩 로직 변경 없이 자동 반영됨.
+ *
+ * 참고: Mojang bedrock-protocol-docs, changelog_2168_07_07_26.md (r/26_u4)
+ */
 class MoveActorDeltaPacket extends DataPacket implements ClientboundPacket{
 	public const NETWORK_ID = ProtocolInfo::MOVE_ACTOR_DELTA_PACKET;
 
@@ -32,6 +37,7 @@ class MoveActorDeltaPacket extends DataPacket implements ClientboundPacket{
 	public const FLAG_GROUND = 0x40;
 	public const FLAG_TELEPORT = 0x80;
 	public const FLAG_FORCE_MOVE_LOCAL_ENTITY = 0x100;
+	public const FLAG_FORCE_COMPLETION = 0x200;
 
 	public int $actorRuntimeId;
 	public int $flags;

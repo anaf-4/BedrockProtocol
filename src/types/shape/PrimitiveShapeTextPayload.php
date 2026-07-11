@@ -1,5 +1,4 @@
 <?php
-
 /*
  * This file is part of BedrockProtocol.
  * Copyright (C) 2014-2022 PocketMine Team <https://github.com/pmmp/BedrockProtocol>
@@ -9,9 +8,7 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  */
-
 declare(strict_types=1);
-
 namespace pocketmine\network\mcpe\protocol\types\shape;
 
 use pmmp\encoding\ByteBufferReader;
@@ -21,6 +18,12 @@ use pocketmine\color\Color;
 use pocketmine\network\mcpe\protocol\serializer\CommonTypes;
 use pocketmine\network\mcpe\protocol\types\GetTypeIdFromConstTrait;
 
+/**
+ * r/26_u4 (protocol 2169)부터 LineGapHeight(mLineHeightOverride) 필드가
+ * BackgroundColor와 DepthTest 사이에 추가됨.
+ *
+ * 참고: Mojang bedrock-protocol-docs, changelog_2168_07_07_26.md (r/26_u4)
+ */
 final class PrimitiveShapeTextPayload extends PrimitiveShapePayload{
 	use GetTypeIdFromConstTrait;
 
@@ -30,6 +33,7 @@ final class PrimitiveShapeTextPayload extends PrimitiveShapePayload{
 		private string $text,
 		private bool $useRotation,
 		private ?Color $backgroundColor,
+		private float $lineGapHeight,
 		private bool $depthTest,
 		private bool $showBackface,
 		private bool $showTextBackface,
@@ -41,6 +45,8 @@ final class PrimitiveShapeTextPayload extends PrimitiveShapePayload{
 
 	public function getBackgroundColor() : ?Color{ return $this->backgroundColor; }
 
+	public function getLineGapHeight() : float{ return $this->lineGapHeight; }
+
 	public function hasDepthTest() : bool{ return $this->depthTest; }
 
 	public function hasShowBackface() : bool{ return $this->showBackface; }
@@ -51,17 +57,18 @@ final class PrimitiveShapeTextPayload extends PrimitiveShapePayload{
 		$text = CommonTypes::getString($in);
 		$useRotation = CommonTypes::getBool($in);
 		$backgroundColor = CommonTypes::readOptional($in, fn() => Color::fromARGB(LE::readUnsignedInt($in)));
+		$lineGapHeight = LE::readFloat($in);
 		$depthTest = CommonTypes::getBool($in);
 		$showBackface = CommonTypes::getBool($in);
 		$showTextBackface = CommonTypes::getBool($in);
-
-		return new self($text, $useRotation, $backgroundColor, $depthTest, $showBackface, $showTextBackface,);
+		return new self($text, $useRotation, $backgroundColor, $lineGapHeight, $depthTest, $showBackface, $showTextBackface);
 	}
 
 	public function write(ByteBufferWriter $out) : void{
 		CommonTypes::putString($out, $this->text);
 		CommonTypes::putBool($out, $this->useRotation);
 		CommonTypes::writeOptional($out, $this->backgroundColor, fn(ByteBufferWriter $out, Color $color) => LE::writeUnsignedInt($out, $color->toARGB()));
+		LE::writeFloat($out, $this->lineGapHeight);
 		CommonTypes::putBool($out, $this->depthTest);
 		CommonTypes::putBool($out, $this->showBackface);
 		CommonTypes::putBool($out, $this->showTextBackface);

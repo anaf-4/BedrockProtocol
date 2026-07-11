@@ -158,6 +158,8 @@ final class CommonTypes{
 		$capeOnClassic = self::getBool($in);
 		$isPrimaryUser = self::getBool($in);
 		$override = self::getBool($in);
+		$trustedSkinFlag = self::readOptional($in, fn() => self::getBool($in));
+		$profileHash = self::getString($in);
 
 		return new SkinData(
 			$skinId,
@@ -175,12 +177,14 @@ final class CommonTypes{
 			$skinColor,
 			$personaPieces,
 			$pieceTintColors,
-			true,
+                        $trustedSkinFlag ?? true,
 			$premium,
 			$persona,
 			$capeOnClassic,
 			$isPrimaryUser,
 			$override,
+                        $trustedSkinFlag,
+                        $profileHash,
 		);
 	}
 
@@ -225,6 +229,8 @@ final class CommonTypes{
 		self::putBool($out, $skin->isPersonaCapeOnClassic());
 		self::putBool($out, $skin->isPrimaryUser());
 		self::putBool($out, $skin->isOverride());
+                self::writeOptional($out, $skin->getTrustedSkinFlag(), fn(ByteBufferWriter $out, bool $v) => self::putBool($out, $v));
+                self::putString($out, $skin->getProfileHash());
 	}
 
 	/** @throws DataDecodeException */

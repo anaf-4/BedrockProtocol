@@ -1,5 +1,4 @@
 <?php
-
 /*
  * This file is part of BedrockProtocol.
  * Copyright (C) 2014-2022 PocketMine Team <https://github.com/pmmp/BedrockProtocol>
@@ -9,14 +8,18 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  */
-
 declare(strict_types=1);
-
 namespace pocketmine\network\mcpe\protocol\types\skin;
 
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use Ramsey\Uuid\Uuid;
 
+/**
+ * r/26_u4 (protocol 2169)부터 TrustedSkinFlag(3단계: Unset/False/True, 여기서는
+ * nullable bool로 표현)와 ProfileHash(원격 프로필 이미지 캐시 키) 필드가 추가됨.
+ *
+ * 참고: Mojang bedrock-protocol-docs, changelog_2168_07_07_26.md (r/26_u4)
+ */
 class SkinData{
 
 	public const ARM_SIZE_SLIM = "slim";
@@ -51,7 +54,9 @@ class SkinData{
 		private bool $persona = false,
 		private bool $personaCapeOnClassic = false,
 		private bool $isPrimaryUser = true,
-		private bool $override = true
+		private bool $override = true,
+		private ?bool $trustedSkinFlag = null, //null = "Unset"
+		private string $profileHash = "",
 	){
 		$this->capeImage = $capeImage ?? new SkinImage(0, 0, "");
 		//this has to be unique or the client will do stupid things
@@ -149,4 +154,11 @@ class SkinData{
 	public function setVerified(bool $verified) : void{
 		$this->isVerified = $verified;
 	}
+
+	/**
+	 * null = Unset(클라이언트가 신뢰 상태를 아직 판단하지 않음), true/false = 명시적 신뢰 상태.
+	 */
+	public function getTrustedSkinFlag() : ?bool{ return $this->trustedSkinFlag; }
+
+	public function getProfileHash() : string{ return $this->profileHash; }
 }

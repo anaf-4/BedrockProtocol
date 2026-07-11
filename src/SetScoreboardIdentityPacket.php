@@ -1,5 +1,4 @@
 <?php
-
 /*
  * This file is part of BedrockProtocol.
  * Copyright (C) 2014-2022 PocketMine Team <https://github.com/pmmp/BedrockProtocol>
@@ -9,24 +8,27 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  */
-
 declare(strict_types=1);
-
 namespace pocketmine\network\mcpe\protocol;
 
 use pmmp\encoding\Byte;
 use pmmp\encoding\ByteBufferReader;
 use pmmp\encoding\ByteBufferWriter;
 use pmmp\encoding\VarInt;
-use pocketmine\network\mcpe\protocol\serializer\CommonTypes;
 use pocketmine\network\mcpe\protocol\types\ScoreboardIdentityPacketEntry;
 use function count;
 
+/**
+ * r/26_u4 (protocol 2169)부터 mPlayerId가 패킷 타입이 아니라 엔트리별
+ * presence byte로 결정됨 (packet-level type 자체는 그대로 유지됨).
+ *
+ * 참고: Mojang bedrock-protocol-docs, changelog_2168_07_07_26.md (r/26_u4)
+ */
 class SetScoreboardIdentityPacket extends DataPacket implements ClientboundPacket{
 	public const NETWORK_ID = ProtocolInfo::SET_SCOREBOARD_IDENTITY_PACKET;
 
-	public const TYPE_REGISTER_IDENTITY = 0;
-	public const TYPE_CLEAR_IDENTITY = 1;
+	public const TYPE_REGISTER_IDENTITY = 0; // "Update"
+	public const TYPE_CLEAR_IDENTITY = 1; // "Remove"
 
 	public int $type;
 	/** @var ScoreboardIdentityPacketEntry[] */
@@ -45,14 +47,9 @@ class SetScoreboardIdentityPacket extends DataPacket implements ClientboundPacke
 
 	protected function decodePayload(ByteBufferReader $in) : void{
 		$this->type = Byte::readUnsigned($in);
+		$this->entries = [];
 		for($i = 0, $count = VarInt::readUnsignedInt($in); $i < $count; ++$i){
-			$entry = new ScoreboardIdentityPacketEntry();
-			$entry->scoreboardId = VarInt::readSignedLong($in);
-			if($this->type === self::TYPE_REGISTER_IDENTITY){
-				$entry->actorUniqueId = CommonTypes::getActorUniqueId($in);
-			}
-
-			$this->entries[] = $entry;
+			$this->entries[] = ScoreboardIdentityPacketEntry::read($in);
 		}
 	}
 
@@ -60,10 +57,7 @@ class SetScoreboardIdentityPacket extends DataPacket implements ClientboundPacke
 		Byte::writeUnsigned($out, $this->type);
 		VarInt::writeUnsignedInt($out, count($this->entries));
 		foreach($this->entries as $entry){
-			VarInt::writeSignedLong($out, $entry->scoreboardId);
-			if($this->type === self::TYPE_REGISTER_IDENTITY){
-				CommonTypes::putActorUniqueId($out, $entry->actorUniqueId);
-			}
+			$entry->write($out);
 		}
 	}
 
