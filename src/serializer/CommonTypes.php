@@ -344,19 +344,14 @@ final class CommonTypes{
 		$count = LE::readUnsignedShort($in);
 		$meta = VarInt::readUnsignedInt($in);
 
-		$hasNetId = self::getBool($in);
-		if ($hasNetId) {
-			$variant = VarInt::readUnsignedInt($in);
-			$stackId = VarInt::readSignedInt($in);
-		} else {
-			$variant = 0;
-			$stackId = 0;
-		}
+		//r/26_u4: netId is now a single signed VarInt union (ItemStackNetIdVariant) instead of a
+		//presence-bool + separate variant + stackId trio. See readItemStackNetIdVariant() docblock.
+		$stackId = self::readItemStackNetIdVariant($in);
 
 		$blockRuntimeId = VarInt::readUnsignedInt($in);
 		$rawExtraData = self::getString($in);
 
-		return new ItemStackWrapper($stackId, new ItemStack($id, $meta, $count, $blockRuntimeId, $rawExtraData), $variant);
+		return new ItemStackWrapper($stackId, new ItemStack($id, $meta, $count, $blockRuntimeId, $rawExtraData), 0);
 	}
 
 	public static function putNetworkItemStackDescriptor(ByteBufferWriter $out, ItemStackWrapper $itemStackWrapper) : void{
@@ -364,11 +359,7 @@ final class CommonTypes{
 		LE::writeUnsignedShort($out, $itemStackWrapper->getItemStack()->getCount());
 		VarInt::writeUnsignedInt($out, $itemStackWrapper->getItemStack()->getMeta());
 
-		self::putBool($out, $hasNetId = $itemStackWrapper->getStackId() !== 0);
-		if($hasNetId){
-			VarInt::writeUnsignedInt($out, $itemStackWrapper->getStackIdVariant());
-			VarInt::writeSignedInt($out, $itemStackWrapper->getStackId());
-		}
+		self::writeItemStackNetIdVariant($out, $itemStackWrapper->getStackId());
 
 		VarInt::writeUnsignedInt($out, $itemStackWrapper->getItemStack()->getBlockRuntimeId());
 		self::putString($out, $itemStackWrapper->getItemStack()->getRawExtraData());
